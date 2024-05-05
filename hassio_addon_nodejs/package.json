@@ -1,0 +1,35 @@
+{
+  "name": "hassio-addon-nodejs",
+  "version": "0.0.17",
+  "description": "Home Assistant Nodejs Support",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src",
+    "eslint": "./node_modules/.bin/eslint src/**/*.js --quiet",
+    "eslint-fix": "./node_modules/.bin/eslint src/**/*.js --fix",
+    "test": "npm run test_unit",
+    "test_unit": "./node_modules/mocha/bin/mocha.js test/**/*.spec.js"
+  },
+  "author": "Graham",
+  "dependencies": {
+    "cli-color": "^2.0.4",
+    "joi": "^17.10.1",
+    "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.8",
+    "eslint": "^8.48.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.28.1",
+    "mocha": "^10.2.0",
+    "mocha-chai-jest-snapshot": "^1.1.4",
+    "proxyquire": "^2.1.3",
+    "sinon": "^16.0.0"
+  },
+  "mocha": {
+    "exit": true,
+    "file": [
+      "test/mocha.js"
+    ]
+  }
+}

@@ -2,23 +2,45 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const log = require('./log');
+// const ha = require('./ha');
+const Entity = require('../class/entity.js');
 
-const automations = {};
+const automations = new Map();
+const triggerable = new Map();
 
-const runAll = (params) => {
-  Object.values(automations).forEach((a) => a.run(params));
+const automationParams = () => ({ Entity, log });
+
+const trigger = (key, entity) => {
+  const automation = automations.get(key);
+  if(!automation || !automation.trigger) {
+    // log.warn(`Automation ${key} has no trigger`);
+    return;
+  }
+  try {
+    automation.trigger({ trigger: entity, ...automationParams() });
+  } catch(err) {
+    log.error(`ERROR running automation ${key}`);
+    log.error(err);
+  }
 };
 
-const loadAutomation = (automationPath, fullPath) => {
-  const automationKey = path.relative(automationPath, fullPath);
-  if(automations[automationKey]) {
-    if(automations[automationKey].unregister) automations[automationKey].unregister();
-    Reflect.deleteProperty(require.cache, require.resolve(fullPath));
-  }
-  automations[automationKey] = require(fullPath); // eslint-disable-line import/no-dynamic-require,global-require
-  if(automations[automationKey].class) automations[automationKey] = new (automations[automationKey].class)(); // eslint-disable-line new-cap
-  if(automations[automationKey].register) automations[automationKey].register();
-  log.info(`Loaded automation: ${automationKey}`);
+const triggerAll = (entity) => triggerable.forEach((junk, key) => trigger(key, entity));
+
+const removeAutomation = (key, fullPath) => {
+  if(!automations.has(key)) return;
+  const exist = automations.get(key);
+  if(exist.unregister) exist.unregister();
+  Reflect.deleteProperty(require.cache, require.resolve(fullPath));
+  triggerable.delete(key);
+};
+
+const loadAutomation = (key, fullPath) => {
+  const classOrModule = require(fullPath); // eslint-disable-line import/no-dynamic-require,global-require
+  const automation = classOrModule.class ? new (classOrModule.class)(automationParams()) : classOrModule; // eslint-disable-line new-cap
+  automations.set(key, automation);
+  triggerable.set(key, !!automation.trigger);
+  if(automation.register) automation.register(automationParams());
+  log.info(`Loaded automation: ${key}`);
 };
 
 const watch = (automationPath) => {
@@ -26,8 +48,10 @@ const watch = (automationPath) => {
   chokidar
     .watch(automationPath, { ignored: /^\./, persistent: true, depth: 99 })
     .on('all', (event, fullPath) => {
-      // log.info(`Automation file event: ${event} ${fullPath}`);
-      if(['add', 'change'].includes(event)) loadAutomation(automationPath, fullPath);
+      const key = path.relative(automationPath, fullPath);
+      log.info(`Automation file event: ${event} ${key}`);
+      if(event === 'change' || event === 'unlink') removeAutomation(key, fullPath);
+      if(event === 'change' || event === 'add') loadAutomation(key, fullPath);
     });
 };
 
@@ -42,5 +66,5 @@ const start = (automationPath) => {
 
 module.exports = {
   start,
-  runAll,
+  triggerAll,
 };

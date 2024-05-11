@@ -64,6 +64,10 @@ class Entity {
     this[priv].stateChangeHandlers.push(handler);
   }
 
+  removeStateChangeHandler(handler) {
+    this[priv].stateChangeHandlers = this[priv].stateChangeHandlers.filter((h) => h !== handler);
+  }
+
   static add(entityId, data) {
     entityMap.set(entityId, new Entity(entityId, data));
   }

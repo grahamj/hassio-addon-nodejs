@@ -12,11 +12,11 @@ const handleStateChange = (data) => {
   } else {
     Entity.add(data.entity_id, data);
   }
-  automation.runAll({ Entity, ha, trigger });
+  automation.triggerAll(trigger);
 };
 
 const connect = async (config) => {
-  log.info(`Connecting to ${config.utl}`);
+  log.info(`Connecting to ${config.url}`);
   ha.configure(config);
   ha.on('connection', (info) => {
     log.info('Connection state:', info);

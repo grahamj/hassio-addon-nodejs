@@ -1,9 +1,7 @@
-// const fs = require('fs');
-// const { join } = require('path');
-const { connect } = require('./lib/ha.js');
-const log = require('./lib/log.js');
-// const home = require('./home');
-// const entities = require('./home/entities');
+const path = require('path');
+const { connect, listen } = require('./lib/ha');
+const log = require('./lib/log');
+const automation = require('./lib/automation');
 
 process.on('unhandledRejection', (err) => {
   log.error('Unhandled rejection:', err, err.stack);
@@ -20,26 +18,29 @@ process.on('unhandledException', (err) => {
   });
 });
 
-// const registerAutomations = async () => {
-//   const automationDir = join(__dirname, 'home', 'automation');
-//   const files = fs.readdirSync(automationDir);
-//   await Promise.all(files.map(async (file) => {
-//     if(!file.endsWith('.js')) return;
-//     log.info(`Registering ${file}`);
-//     // eslint-disable-next-line import/no-dynamic-require, global-require
-//     const automation = require(join(automationDir, file));
-//     automation.register();
-//   }));
-//   log.info('Registration complete');
-// };
-
 const start = async () => {
-  log.info('Home Assistant Nodejs Support Started');
-  // await entities.register();
-  await connect();
-  // home.build();
-  // await getStates();
-  // await registerAutomations();
+  log.info('Welcome to Home Assistant Nodejs Support');
+
+  const { SUPERVISOR_TOKEN, HA_AUTOMATION_DIR, HA_URL, HA_TOKEN } = process.env;
+  const runningInHA = !!SUPERVISOR_TOKEN;
+
+  const automationPath = runningInHA ? '/config/automations' : (HA_AUTOMATION_DIR || `${path.join(__dirname, '..', 'automation_examples')}`);
+  const wsConfig = runningInHA ? {
+    url: 'ws://supervisor/core/websocket',
+    password: SUPERVISOR_TOKEN,
+  } : {
+    url: HA_URL,
+    token: HA_TOKEN,
+  };
+
+  log.info(`Running ${runningInHA ? 'inside' : 'outside'} Home Assistant`);
+  // log.info('Config', config);
+  // log.info('Env', process.env);
+
+  await connect(wsConfig);
+  automation.start(automationPath);
+  await listen();
+  log.info('Started');
 };
 
 start()

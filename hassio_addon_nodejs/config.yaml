@@ -1,7 +1,9 @@
 name: Home Assistant Nodejs Support
 description: Home Assistant Nodejs Support
-version: 0.0.18
+version: 0.0.35
 slug: hassio-addon-nodejs
+startup: application
+boot: auto
 arch:
   - amd64
   #- aarch64
@@ -10,6 +12,6 @@ arch:
   #- i386
 url: https://github.com/grahamj/hassio-addon-nodejs
 map:
-  - config:rw
+  - addon_config:rw
 init: false
 homeassistant_api: true

@@ -3,12 +3,13 @@ const path = require('path');
 const chokidar = require('chokidar');
 const log = require('./log');
 // const ha = require('./ha');
-const Entity = require('../class/entity.js');
+const State = require('../class/state.js');
+const Automation = require('../class/automation.js');
 
 const automations = new Map();
 const triggerable = new Map();
 
-const automationParams = () => ({ Entity, log });
+const automationParams = () => ({ Automation, State, log });
 
 const trigger = (key, entity) => {
   const automation = automations.get(key);
@@ -29,18 +30,26 @@ const triggerAll = (entity) => triggerable.forEach((junk, key) => trigger(key, e
 const removeAutomation = (key, fullPath) => {
   if(!automations.has(key)) return;
   const exist = automations.get(key);
-  if(exist.unregister) exist.unregister();
+  log.info(`Removing automation ${key}`);
+  if(exist.unregister) {
+    try {
+      exist.unregister();
+    } catch(err) {
+      log.error(`Failed to unregister automation ${key}`);
+    }
+  }
   Reflect.deleteProperty(require.cache, require.resolve(fullPath));
   triggerable.delete(key);
 };
 
 const loadAutomation = (key, fullPath) => {
+  if(automations.has(key)) removeAutomation(key, fullPath);
+  log.info(`Loading automation ${key}`);
   const classOrModule = require(fullPath); // eslint-disable-line import/no-dynamic-require,global-require
-  const automation = classOrModule.class ? new (classOrModule.class)(automationParams()) : classOrModule; // eslint-disable-line new-cap
+  const automation = classOrModule.init ? classOrModule.init(automationParams()) : classOrModule;
   automations.set(key, automation);
   triggerable.set(key, !!automation.trigger);
   if(automation.register) automation.register(automationParams());
-  log.info(`Loaded automation: ${key}`);
 };
 
 const watch = (automationPath) => {
@@ -48,10 +57,18 @@ const watch = (automationPath) => {
   chokidar
     .watch(automationPath, { ignored: /^\./, persistent: true, depth: 99 })
     .on('all', (event, fullPath) => {
+      if(!fullPath.endsWith('.js')) return;
       const key = path.relative(automationPath, fullPath);
-      log.info(`Automation file event: ${event} ${key}`);
-      if(event === 'change' || event === 'unlink') removeAutomation(key, fullPath);
-      if(event === 'change' || event === 'add') loadAutomation(key, fullPath);
+      // log.info(`Automation file event: ${event} ${key}`);
+      switch(event) { // eslint-disable-line default-case
+        // case 'change':
+        case 'add':
+          loadAutomation(key, fullPath);
+          break;
+        case 'unlink':
+          removeAutomation(key, fullPath);
+          break;
+      }
     });
 };
 

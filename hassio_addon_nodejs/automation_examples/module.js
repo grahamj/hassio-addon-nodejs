@@ -1,25 +1,25 @@
 let log;
-let garageTempEntity;
+let drivewayTempState;
 
-const register = ({ Entity, log: inLog }) => {
+const register = ({ State, log: inLog }) => {
   log = inLog;
   log.info('Module-style automation registered');
 
-  garageTempEntity = Entity.findById('sensor.garage_temperature_2');
-  if(!garageTempEntity) throw new Error('Module-style automation could not find sensor.garage_temperature_2')
-  garageTempEntity.onStateChange(garageTempChange);
+  drivewayTempState = State.findByEntityId('sensor.driveway_temperature');
+  if(!drivewayTempState) throw new Error('Module-style automation could not find sensor.driveway_temperature')
+  drivewayTempState.onChange(drivewayTempChange);
 };
 
 const unregister = () => {
   log.info('Module-style automation unregistered');
-  garageTempEntity.removeStateChangeHandler(this.garageTempChange);
+  drivewayTempState.removeStateChangeHandler(this.drivewayTempChange);
 };
 
-const garageTempChange = () => {
-  log.info(`Module-style automation garageTempChange ${garageTempEntity.previousState} -> ${garageTempEntity.state}`);
+const drivewayTempChange = () => {
+  log.info(`Module-style automation drivewayTempChange ${drivewayTempState.previousState} -> ${drivewayTempState.state}`);
 };
 
-// const trigger = ({ Entity, log, trigger }) => {
+// const trigger = ({ State, log, trigger }) => {
 //   log.info(`Module-style automation triggered by ${trigger.entityId}`);
 // };
 

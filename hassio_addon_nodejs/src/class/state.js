@@ -1,15 +1,12 @@
-const log = require('../lib/log.js');
-
 const priv = Symbol('private');
 const entityMap = new Map();
 
-class Entity {
+class State {
 
   constructor(entityId, data) {
     if(entityMap.get(entityId)) {
-      throw new Error(`Cannot instantiate more than one Entity with the same entityID (${entityId})`);
+      throw new Error(`Cannot instantiate more than one State with the same entityID (${entityId})`);
     }
-    // log.info(`Creating entity instance ${entityId}`);
     this[priv] = {
       stateChangeHandlers: [],
     };
@@ -22,11 +19,11 @@ class Entity {
       context: undefined,
       event: undefined,
     });
-    if(data) this.setState(data);
+    if(data) this.set(data);
     entityMap.set(entityId, data);
   }
 
-  setState(data) {
+  set(data) {
     Object.assign(this, {
       state: data.state,
       attributes: data.attributes,
@@ -35,8 +32,8 @@ class Entity {
     });
   }
 
-  processStateChange(data) {
-    // log.info(`Entity state change: ${this.entityId}: ${data.old_state.state} -> ${data.new_state.state}`);
+  processChange(data) {
+    // log.info(`State state change: ${this.entityId}: ${data.old_state.state} -> ${data.new_state.state}`);
     Object.assign(this, {
       state: data.new_state.state,
       previousState: data.old_state.state,
@@ -49,33 +46,35 @@ class Entity {
         oldState: data.old_state,
       },
     });
-    this.handleStateChange();
+    this.handleChange();
   }
 
   get manualContext() {
     return this.context && this.context.id && !this.context.parent_id && !this.context.user_id;
   }
 
-  handleStateChange() {
+  handleChange() {
     this[priv].stateChangeHandlers.forEach((handler) => handler(this));
   }
 
-  onStateChange(handler) {
+  onChange(handler) {
     this[priv].stateChangeHandlers.push(handler);
   }
 
-  removeStateChangeHandler(handler) {
+  removeChangeHandler(handler) {
     this[priv].stateChangeHandlers = this[priv].stateChangeHandlers.filter((h) => h !== handler);
   }
 
   static add(entityId, data) {
-    entityMap.set(entityId, new Entity(entityId, data));
+    const newState = new State(entityId, data);
+    entityMap.set(entityId, newState);
+    return newState;
   }
 
-  static findById(entityId) {
+  static findByEntityId(entityId) {
     return entityMap.get(entityId);
   }
 
 }
 
-module.exports = Entity;
+module.exports = State;

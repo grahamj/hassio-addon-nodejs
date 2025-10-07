@@ -3,7 +3,7 @@ const SocketConnection = require('./SocketConnection.js');
 const log = require('./log.js');
 const automation = require('./automation.js');
 
-const socket = new SocketConnection();
+const connection = new SocketConnection();
 
 const handleStateChange = (data) => {
   let state = State.findByEntityId(data.entity_id);
@@ -17,23 +17,24 @@ const handleStateChange = (data) => {
 
 const connect = async (config) => {
   log.info(`Connecting to ${config.url}`);
-  socket.configure(config);
-  socket.on('connection', (info) => {
+  connection.configure(config);
+  connection.on('connection', (info) => {
     log.info('Connection state:', info);
   });
-  await socket.connect();
+  await connection.connect();
   log.info('Connected, requesting states');
-  const states = await socket.getStates();
+  const states = await connection.getStates();
   log.info(`Got state for ${states.length} entities`);
   states.forEach(handleStateChange);
 };
 
 const listen = async () => {
-  socket.on('state_changed', handleStateChange);
+  connection.on('state_changed', handleStateChange);
   log.info('Listening for state changes');
 };
 
 module.exports = {
   connect,
   listen,
+  getConnection: () => connection,
 };

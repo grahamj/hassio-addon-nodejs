@@ -2,14 +2,17 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const log = require('./log');
-// const ha = require('./ha');
+const ha = require('./ha');
 const State = require('../class/state.js');
 const Automation = require('../class/automation.js');
 
 const automations = new Map();
 const triggerable = new Map();
 
-const automationParams = () => ({ Automation, State, log });
+const automationParams = () => {
+  const connection = ha.getConnection();
+  return { Automation, State, connection, log };
+};
 
 const trigger = (key, entity) => {
   const automation = automations.get(key);

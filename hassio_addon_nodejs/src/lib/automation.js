@@ -40,7 +40,10 @@ const removeAutomation = (key, fullPath) => {
       log.error(`Failed to unregister automation ${key}`);
     }
   }
-  Reflect.deleteProperty(require.cache, require.resolve(fullPath));
+  const baseDir = path.dirname(fullPath);
+  Object.keys(require.cache).forEach((cachePath) => {
+    if(cachePath.startsWith(baseDir)) Reflect.deleteProperty(require.cache, cachePath);
+  });
   triggerable.delete(key);
 };
 
@@ -60,7 +63,7 @@ const watch = (automationPath) => {
     .watch(automationPath, {
       ignored: (filePath, stats) => stats?.isFile() && !filePath.endsWith('.js'),
       persistent: true,
-      depth: 99,
+      depth: 1,
     })
     .on('all', (event, fullPath) => {
       if(!fullPath.endsWith('.js')) return;

@@ -2,15 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const log = require('./log');
-const ha = require('./ha');
 const State = require('../class/state.js');
 const Automation = require('../class/automation.js');
 
 const automations = new Map();
 const triggerable = new Map();
+let connection;
 
 const automationParams = () => {
-  const connection = ha.getConnection();
   return { Automation, State, connection, log };
 };
 
@@ -58,13 +57,20 @@ const loadAutomation = (key, fullPath) => {
 const watch = (automationPath) => {
   log.info('Watching for automation file changes');
   chokidar
-    .watch(automationPath, { ignored: /^\./, persistent: true, depth: 99 })
+    .watch(automationPath, {
+      ignored: (filePath, stats) => stats?.isFile() && !filePath.endsWith('.js'),
+      persistent: true,
+      depth: 99,
+    })
     .on('all', (event, fullPath) => {
       if(!fullPath.endsWith('.js')) return;
       const key = path.relative(automationPath, fullPath);
-      // log.info(`Automation file event: ${event} ${key}`);
+      log.info(`Automation file event: ${event} ${key}`);
       switch(event) { // eslint-disable-line default-case
-        // case 'change':
+        case 'change':
+          removeAutomation(key, fullPath);
+          loadAutomation(key, fullPath);
+          break;
         case 'add':
           loadAutomation(key, fullPath);
           break;
@@ -75,7 +81,8 @@ const watch = (automationPath) => {
     });
 };
 
-const start = (automationPath) => {
+const start = (automationPath, wsConnection) => {
+  connection = wsConnection;
   log.info(`Loading automations from ${automationPath}`);
   if(!fs.existsSync(automationPath)) {
     log.info('Path does not exist, creating');

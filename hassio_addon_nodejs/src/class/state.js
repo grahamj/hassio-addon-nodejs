@@ -34,16 +34,18 @@ class State {
 
   processChange(data) {
     // log.info(`State state change: ${this.entityId}: ${data.old_state.state} -> ${data.new_state.state}`);
+    const state = [null, undefined].includes(data.new_state) ? data.new_state : data.new_state?.state;
+    const previousState = [null, undefined].includes(data.old_state) ? data.old_state : data.old_state?.state;
     Object.assign(this, {
-      state: data.new_state.state,
-      previousState: data.old_state.state,
-      attributes: data.new_state.attributes,
-      lastChange: new Date(data.new_state.last_changed),
-      lastUpdate: new Date(data.new_state.last_updated),
+      state,
+      previousState,
+      attributes: data.new_state?.attributes,
+      lastChange: new Date(data.new_state?.last_changed),
+      lastUpdate: new Date(data.new_state?.last_updated),
       context: data.context,
       event: {
-        newState: data.new_state,
-        oldState: data.old_state,
+        newState: state,
+        oldState: previousState,
       },
     });
     this.handleChange();

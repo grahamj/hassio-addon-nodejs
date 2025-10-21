@@ -26,6 +26,7 @@ const connect = async (config) => {
   const states = await connection.getStates();
   log.info(`Got state for ${states.length} entities`);
   states.forEach(handleStateChange);
+  return connection;
 };
 
 const listen = async () => {
@@ -36,5 +37,4 @@ const listen = async () => {
 module.exports = {
   connect,
   listen,
-  getConnection: () => connection,
 };

@@ -37,8 +37,8 @@ const start = async () => {
   // log.info('Config', config);
   // log.info('Env', process.env);
 
-  await connect(wsConfig);
-  automation.start(automationPath);
+  const connection = await connect(wsConfig);
+  automation.start(automationPath, connection);
   await listen();
   log.info('Started');
 };

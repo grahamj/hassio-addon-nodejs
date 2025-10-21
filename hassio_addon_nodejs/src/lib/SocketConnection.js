@@ -17,6 +17,7 @@ class SocketConnection extends EventEmitter {
       replyHandlers: new Map(),
     });
     this.configure({ ...defaultConfig, ...options });
+    this.setMaxListeners(100);
   }
 
   configure(config = {}) {

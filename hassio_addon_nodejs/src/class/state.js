@@ -32,7 +32,7 @@ class State {
     });
   }
 
-  processChange(data) {
+  async processChange(data) {
     // log.info(`State state change: ${this.entityId}: ${data.old_state.state} -> ${data.new_state.state}`);
     const state = [null, undefined].includes(data.new_state) ? data.new_state : data.new_state?.state;
     const previousState = [null, undefined].includes(data.old_state) ? data.old_state : data.old_state?.state;
@@ -48,15 +48,15 @@ class State {
         oldState: previousState,
       },
     });
-    this.handleChange();
+    await this.handleChange();
   }
 
   get manualContext() {
     return this.context && this.context.id && !this.context.parent_id && !this.context.user_id;
   }
 
-  handleChange() {
-    this[priv].stateChangeHandlers.forEach((handler) => handler(this));
+  async handleChange() {
+    await Promise.all(this[priv].stateChangeHandlers.map((handler) => handler(this)));
   }
 
   onChange(handler) {
@@ -79,4 +79,4 @@ class State {
 
 }
 
-module.exports = State;
+export default State;

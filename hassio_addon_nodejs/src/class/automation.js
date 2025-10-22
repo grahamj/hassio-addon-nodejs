@@ -2,4 +2,4 @@ class Automation {
 
 }
 
-module.exports = Automation;
+export default Automation;

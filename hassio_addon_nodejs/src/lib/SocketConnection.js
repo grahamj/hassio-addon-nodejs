@@ -1,5 +1,6 @@
-const EventEmitter = require('events');
-const Websocket = require('ws');
+import EventEmitter from 'events';
+import WebSocket from 'ws';
+import log from './log.js';
 
 const defaultConfig = {
   retryTimeout: 5000,
@@ -26,7 +27,7 @@ class SocketConnection extends EventEmitter {
 
   async connect() {
     if(!this.config.password && !this.config.token) throw new Error('SocketConnection requires password or token');
-    this.ws = new Websocket(this.config.url);
+    this.ws = new WebSocket(this.config.url);
 
     this.ws.on('message', (data) => {
       const parsedData = JSON.parse(data);
@@ -75,9 +76,6 @@ class SocketConnection extends EventEmitter {
       });
     });
 
-    return this.subscribe((change) => {
-      this.emit(change.event.event_type, change.event.data);
-    });
   }
 
   reconnect() {
@@ -120,22 +118,35 @@ class SocketConnection extends EventEmitter {
     this.ws.send(JSON.stringify(newData));
   }
 
-  async subscribe(handlerFunc) {
+  async subscribe() {
+    log.info('Subscribing to event updates');
     const data = { type: 'subscribe_events' };
     const response = await this.send(data, true, true);
     if(!response.success) throw Object.assign(new Error(), response.error);
+    this.eventSubId = response.id;
     this.replyHandlers.set(response.id, {
-      callback: handlerFunc,
+      callback: (change) => {
+        this.emit(change.event.event_type, change.event.data);
+      },
       timeout: undefined,
     });
     return response;
   }
 
-  unsubscribe(subscription) {
-    return this.send({
+  async unsubscribe(subscription) {
+    log.info('Unsubscribing from event updates');
+    const response = await this.send({
       type: 'unsubscribe_events',
       subscription,
     });
+    Reflect.deleteProperty(this, 'eventSubId');
+    return response;
+  }
+
+  async close() {
+    if(this.eventSubId) await this.unsubscribe(this.eventSubId);
+    log.info('Closing websocket');
+    this.ws.close();
   }
 
   async getStates() {
@@ -146,4 +157,4 @@ class SocketConnection extends EventEmitter {
 
 }
 
-module.exports = SocketConnection;
+export default SocketConnection;

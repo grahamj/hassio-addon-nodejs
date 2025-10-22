@@ -1,7 +1,11 @@
-const path = require('path');
-const { connect, listen } = require('./lib/ha');
-const log = require('./lib/log');
-const automation = require('./lib/automation');
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { connect, listen } from './lib/ha.js';
+import { start as startAutomation } from './lib/automation.js';
+import log from './lib/log.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 process.on('unhandledRejection', (err) => {
   log.error('Unhandled rejection:', err, err.stack);
@@ -18,13 +22,13 @@ process.on('unhandledException', (err) => {
   });
 });
 
-const start = async () => {
+const run = async () => {
   log.info('Welcome to Home Assistant Nodejs Support');
 
   const { SUPERVISOR_TOKEN, HA_AUTOMATION_DIR, HA_URL, HA_TOKEN } = process.env;
   const runningInHA = !!SUPERVISOR_TOKEN;
 
-  const automationPath = runningInHA ? '/config/automations' : (HA_AUTOMATION_DIR || `${path.join(__dirname, '..', 'automation_examples')}`);
+  const automationPath = runningInHA ? '/config/automations' : (HA_AUTOMATION_DIR || `${join(__dirname, '..', 'automation_examples')}`);
   const wsConfig = runningInHA ? {
     url: 'ws://supervisor/core/websocket',
     password: SUPERVISOR_TOKEN,
@@ -38,12 +42,14 @@ const start = async () => {
   // log.info('Env', process.env);
 
   const connection = await connect(wsConfig);
-  automation.start(automationPath, connection);
+  startAutomation(automationPath, connection);
+  // eslint-disable-next-line no-promise-executor-return
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   await listen();
   log.info('Started');
 };
 
-start()
+run()
   .catch((err) => {
     log.error(err);
     process.exit(1);

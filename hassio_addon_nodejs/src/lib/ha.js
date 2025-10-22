@@ -1,18 +1,20 @@
-const State = require('../class/state.js');
-const SocketConnection = require('./SocketConnection.js');
-const log = require('./log.js');
-const automation = require('./automation.js');
+import Queue from 'queue';
+import State from '../class/state.js';
+import SocketConnection from './SocketConnection.js';
+import log from './log.js';
+import { triggerAll } from './automation.js';
 
 const connection = new SocketConnection();
+let queue;
 
-const handleStateChange = (data) => {
+const handleStateChange = async (data) => {
   let state = State.findByEntityId(data.entity_id);
   if(state) {
-    state.processChange(data);
+    await state.processChange(data);
   } else {
     state = State.add(data.entity_id, data);
   }
-  automation.triggerAll(state);
+  await triggerAll(state);
 };
 
 const connect = async (config) => {
@@ -25,16 +27,20 @@ const connect = async (config) => {
   log.info('Connected, requesting states');
   const states = await connection.getStates();
   log.info(`Got state for ${states.length} entities`);
-  states.forEach(handleStateChange);
+  log.info('Starting state handler queue');
+  queue = new Queue({ concurrency: 1, autostart: true });
+  log.info('Processing initial states');
+  await Promise.all(states.map((data) => handleStateChange(data)));
   return connection;
 };
 
 const listen = async () => {
-  connection.on('state_changed', handleStateChange);
+  connection.on('state_changed', (data) => queue.push(async () => handleStateChange(data)));
+  await connection.subscribe();
   log.info('Listening for state changes');
 };
 
-module.exports = {
+export {
   connect,
   listen,
 };

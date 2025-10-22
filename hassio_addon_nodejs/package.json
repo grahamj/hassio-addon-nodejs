@@ -1,8 +1,9 @@
 {
   "name": "hassio-addon-nodejs",
-  "version": "0.0.66",
+  "version": "0.1.25",
   "description": "Home Assistant Nodejs Support",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "start": "node src",
     "eslint": "./node_modules/.bin/eslint src/**/*.js --quiet",
@@ -15,6 +16,7 @@
     "chokidar": "^3.6.0",
     "cli-color": "^2.0.4",
     "joi": "^17.10.1",
+    "queue": "^7.0.0",
     "ws": "^8.13.0"
   },
   "devDependencies": {

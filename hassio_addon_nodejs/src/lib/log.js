@@ -1,5 +1,5 @@
-const util = require('util');
-const clc = require('cli-color');
+import util from 'util';
+import clc from 'cli-color';
 
 const log = ((type, color, args) => {
   const t = new Date();
@@ -14,9 +14,14 @@ const log = ((type, color, args) => {
   }
 });
 
-module.exports = {
-  debug: (...args) => log('debug', clc.xterm(242), args),
-  info: (...args) => log('info', undefined, args),
-  warn: (...args) => log('warn', clc.yellowBright, args),
-  error: (...args) => log('error', clc.redBright, args),
+const debug = (...args) => log('debug', clc.xterm(242), args);
+const info = (...args) => log('info', undefined, args);
+const warn = (...args) => log('warn', clc.yellowBright, args);
+const error = (...args) => log('error', clc.redBright, args);
+
+export default {
+  debug,
+  info,
+  warn,
+  error,
 };

@@ -6,30 +6,30 @@ import State from '../class/state.js';
 import Automation from '../class/automation.js';
 
 const automations = new Map();
-const triggerable = new Map();
+// const triggerable = new Map();
 let connection;
 
 const automationParams = () => {
   return { Automation, State, connection, log };
 };
 
-const trigger = async (key, entity) => {
-  const automation = automations.get(key);
-  if(!automation || !automation.trigger) {
-    // log.warn(`Automation ${key} has no trigger`);
-    return;
-  }
-  try {
-    await automation.trigger({ trigger: entity, ...automationParams() });
-  } catch(err) {
-    log.error(`ERROR running automation ${key}`);
-    log.error(err);
-  }
-};
+// const trigger = async (key, entity) => {
+//   const automation = automations.get(key);
+//   if(!automation || !automation.trigger) {
+//     // log.warn(`Automation ${key} has no trigger`);
+//     return;
+//   }
+//   try {
+//     await automation.trigger({ trigger: entity, ...automationParams() });
+//   } catch(err) {
+//     log.error(`ERROR running automation ${key}`);
+//     log.error(err);
+//   }
+// };
 
-export const triggerAll = async (entity) => {
-  await Promise.all([...triggerable.keys()].map((key) => trigger(key, entity)));
-};
+// export const triggerAll = async (entity) => {
+//   await Promise.all([...triggerable.keys()].map((key) => trigger(key, entity)));
+// };
 
 // const removeAutomation = (key, fullPath) => {
 //   if(!automations.has(key)) return;
@@ -56,7 +56,7 @@ const loadAutomation = async (key, fullPath) => {
   const classOrModule = await import(fullPath); // eslint-disable-line import/no-dynamic-require,global-require
   const automation = classOrModule.init ? classOrModule.init(automationParams()) : classOrModule;
   automations.set(key, automation);
-  triggerable.set(key, !!automation.trigger);
+  // triggerable.set(key, !!automation.trigger);
   if(automation.register) automation.register(automationParams());
 };
 

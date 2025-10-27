@@ -2,7 +2,7 @@ import Queue from 'queue';
 import State from '../class/state.js';
 import SocketConnection from './SocketConnection.js';
 import log from './log.js';
-import { triggerAll } from './automation.js';
+// import { triggerAll } from './automation.js';
 
 const connection = new SocketConnection();
 let queue;
@@ -10,11 +10,16 @@ let queue;
 const handleStateChange = async (data) => {
   let state = State.findByEntityId(data.entity_id);
   if(state) {
-    await state.processChange(data);
+    try {
+      await state.processChange(data);
+    } catch(err) {
+      log.error('ERROR handling state change');
+      log.error(err);
+    }
   } else {
     state = State.add(data.entity_id, data);
   }
-  await triggerAll(state);
+  // await triggerAll(state);
 };
 
 const connect = async (config) => {

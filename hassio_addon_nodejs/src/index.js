@@ -40,7 +40,7 @@ const run = async () => {
   log.info(`Running ${runningInHA ? 'inside' : 'outside'} Home Assistant`);
 
   const connection = await connect(wsConfig);
-  startAutomation(automationPath, connection);
+  await startAutomation(automationPath, connection);
   // eslint-disable-next-line no-promise-executor-return
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await listen();

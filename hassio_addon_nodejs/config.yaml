@@ -1,6 +1,6 @@
 name: Home Assistant Nodejs Support
 description: Home Assistant Nodejs Support
-version: 0.1.33
+version: 0.1.35
 slug: hassio-addon-nodejs
 startup: application
 boot: auto

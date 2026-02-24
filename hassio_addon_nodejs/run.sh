@@ -9,4 +9,4 @@ echo "Starting hassio-addon-node"
 #   cd -
 # fi
 
-node src
+exec node src

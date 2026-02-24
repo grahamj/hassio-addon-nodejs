@@ -45,7 +45,6 @@ const run = async () => {
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await listen();
   log.info('Started');
-  setInterval(() => log.info(...Object.entries(process.memoryUsage()).map(([k, v]) => `${k}=${Math.floor(v / 1024)}k`)), 60000);
 };
 
 run()

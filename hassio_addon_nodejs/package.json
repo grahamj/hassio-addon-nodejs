@@ -1,6 +1,6 @@
 {
   "name": "hassio-addon-nodejs",
-  "version": "0.1.35",
+  "version": "0.1.41",
   "description": "Home Assistant Nodejs Support",
   "main": "src/index.js",
   "type": "module",

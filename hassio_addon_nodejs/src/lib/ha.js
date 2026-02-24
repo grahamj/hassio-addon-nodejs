@@ -40,8 +40,8 @@ const connect = async (config) => {
 };
 
 const listen = async () => {
-  connection.on('state_changed', (data) => queue.push(async () => handleStateChange(data)));
-  await connection.subscribe();
+  connection.on('state_changed', (data) => queue.push(async () => handleStateChange(structuredClone(data))));
+  await connection.subscribeAllEvents();
   log.info('Listening for state changes');
 };
 

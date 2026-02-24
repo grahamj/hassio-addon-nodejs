@@ -16,6 +16,7 @@ class SocketConnection extends EventEmitter {
       id: 1,
       config: {},
       replyHandlers: new Map(),
+      eventSubIds: [],
     });
     this.configure({ ...defaultConfig, ...options });
     this.setMaxListeners(100);
@@ -31,25 +32,27 @@ class SocketConnection extends EventEmitter {
 
     this.ws.on('message', (data) => {
       const parsedData = JSON.parse(data);
+      const { id, type } = parsedData;
 
-      if(parsedData.type === 'auth_ok') {
+      if(type === 'auth_ok') {
         this.emit('connection', 'authenticated');
         return;
       }
 
-      if(parsedData.type === 'auth_required') {
+      if(type === 'auth_required') {
         if(this.config.token) return this.send({ type: 'auth', access_token: this.config.token }, false);
         return this.send({ type: 'auth', api_password: this.config.password }, false);
       }
 
-      if(parsedData.type === 'auth_invalid') {
+      if(type === 'auth_invalid') {
         throw new Error('Invalid password');
       }
 
-      const { timeout, callback } = this.replyHandlers.get(parsedData.id) || {};
-      if(!callback) return false;
+      if(!id || !this.replyHandlers.has(id)) return;
+      const { timeout, callback, persist } = this.replyHandlers.get(id);
       if(timeout) clearTimeout(timeout);
       if(callback) callback(parsedData);
+      if(!persist) this.replyHandlers.delete(id);
     });
 
     this.ws.on('open', () => {
@@ -97,20 +100,25 @@ class SocketConnection extends EventEmitter {
     return response.result;
   }
 
-  async send(data, addId = true) {
-    const newData = { ...data };
-    if(addId) {
-      newData.id = this.id;
-      this.id++;
-    }
+  get nextid() {
+    this.id++;
+    if(this.id > 65534) this.id = 2;
+    while(this.replyHandlers.has(this.id)) this.id++;
+    return this.id;
+  }
 
+  async send(data, addId = true) {
+    const newData = structuredClone(data);
+    if(addId) newData.id = this.nextid;
     if(newData.id) {
       return new Promise((resolve, reject) => {
         this.replyHandlers.set(newData.id, {
           timeout: setTimeout(() => {
             return reject(new Error(`No response received for ID ${newData.id}`));
           }, this.config.timeout),
-          callback: resolve,
+          callback: (...args) => {
+            resolve(...args);
+          },
         });
         this.ws.send(JSON.stringify(newData));
       });
@@ -118,17 +126,34 @@ class SocketConnection extends EventEmitter {
     this.ws.send(JSON.stringify(newData));
   }
 
-  async subscribe() {
+  async subscribeAllEvents() {
     log.info('Subscribing to event updates');
     const data = { type: 'subscribe_events' };
     const response = await this.send(data, true, true);
     if(!response.success) throw Object.assign(new Error(), response.error);
-    this.eventSubId = response.id;
+    this.eventSubIds.push(response.id);
     this.replyHandlers.set(response.id, {
       callback: (change) => {
-        this.emit(change.event.event_type, change.event.data);
+        this.emit(change.event.event_type, structuredClone(change.event.data));
       },
       timeout: undefined,
+      persist: true,
+    });
+    return response;
+  }
+
+  async subscribeTrigger(trigger) {
+    log.info(`Subscribing to trigger for ${trigger.entity_id}`);
+    const data = { type: 'subscribe_trigger', trigger };
+    const response = await this.send(data, true, true);
+    if(!response.success) throw Object.assign(new Error(), response.error);
+    this.eventSubIds.push(response.id);
+    this.replyHandlers.set(response.id, {
+      callback: (change) => {
+        this.emit(change.event.event_type, structuredClone(change.event.data));
+      },
+      timeout: undefined,
+      persist: true,
     });
     return response;
   }
@@ -139,12 +164,12 @@ class SocketConnection extends EventEmitter {
       type: 'unsubscribe_events',
       subscription,
     });
-    Reflect.deleteProperty(this, 'eventSubId');
+    this.replyHandlers.delete(subscription);
     return response;
   }
 
   async close() {
-    if(this.eventSubId) await this.unsubscribe(this.eventSubId);
+    if(this.eventSubIds) await Promise.all(this.eventSubIds.map((id) => this.unsubscribe(id)));
     log.info('Closing websocket');
     this.ws.close();
   }

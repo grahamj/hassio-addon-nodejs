@@ -68,7 +68,7 @@ class State {
   }
 
   static add(entityId, data) {
-    const newState = new State(entityId, data);
+    const newState = new State(entityId, structuredClone(data));
     entityMap.set(entityId, newState);
     return newState;
   }

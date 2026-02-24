@@ -72,7 +72,7 @@ const stop = async () => {
     }
   }));
   await connection.close();
-  process.exit(1);
+  process.exit(0);
 };
 
 const watch = (automationPath) => {

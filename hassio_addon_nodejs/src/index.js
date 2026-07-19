@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { connect, listen } from './lib/ha.js';
-import { start as startAutomation } from './lib/automation.js';
+import { connect, initStates, listen } from './lib/ha.js';
+import { init as initAutomation, start as startAutomation } from './lib/automation.js';
 import log from './lib/log.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -40,10 +40,12 @@ const run = async () => {
   log.info(`Running ${runningInHA ? 'inside' : 'outside'} Home Assistant`);
 
   const connection = await connect(wsConfig);
-  await startAutomation(automationPath, connection);
+  const trackedEntities = await initAutomation(automationPath, connection);
+  await initStates(trackedEntities);
+  await startAutomation();
   // eslint-disable-next-line no-promise-executor-return
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  await listen();
+  await listen(trackedEntities);
   log.info('Started');
 };
 

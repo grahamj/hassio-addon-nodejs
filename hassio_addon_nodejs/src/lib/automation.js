@@ -5,7 +5,7 @@ import State from '../class/state.js';
 import Automation from '../class/automation.js';
 
 const { readdir } = fs.promises;
-const automations = new Map();
+let automations;
 let connection;
 
 const automationParams = () => {
@@ -17,8 +17,7 @@ const loadAutomation = async (key, fullPath) => {
   // eslint-disable-next-line import/no-dynamic-require,global-require
   const classOrModule = await import(fullPath);
   const automation = classOrModule.init ? classOrModule.init(automationParams()) : classOrModule;
-  automations.set(key, automation);
-  if(automation.register) automation.register(automationParams());
+  return automation;
 };
 
 const loadAutomationsFromPath = async (automationPath) => {
@@ -35,17 +34,46 @@ const loadAutomationsFromPath = async (automationPath) => {
       }));
   }));
   const allFiles = fileLists.flat();
-  await Promise.all(allFiles.map(async ({ key, fullPath }) => {
+  return Promise.all(allFiles.map(async ({ key, fullPath }) => {
     try {
-      await loadAutomation(key, fullPath);
+      const automation = await loadAutomation(key, fullPath);
+      return automation;
     } catch {
       throw new Error(`Failed to load automation ${key}`);
     }
   }));
 };
 
-export const start = async (automationPath, wsConnection) => {
+export const init = async (automationPath, wsConnection) => {
   connection = wsConnection;
   log.info(`Loading automations from ${automationPath}`);
-  await loadAutomationsFromPath(automationPath);
+  automations = await loadAutomationsFromPath(automationPath);
+
+  // Find what tracked entities the automations need
+  // If any automation doesn't provide any, track everything
+  const trackedEntities = new Set();
+  let trackAllEntities;
+  automations.forEach((automation) => {
+    if(!automation) return;
+    let didSetTrackedEntities = false;
+    if(automation.getConfig) {
+      const config = automation.getConfig();
+      if(config.trackEntities && config.trackEntities.length) {
+        config.trackEntities.forEach((entity) => trackedEntities.add(entity));
+        didSetTrackedEntities = true;
+      }
+    }
+    if(!didSetTrackedEntities) trackAllEntities = true;
+  });
+  if(!trackAllEntities) return trackedEntities;
+};
+
+export const start = async () => {
+  log.info('Registering automations');
+  if(!automations) throw new Error('automations not initialized');
+  const params = automationParams();
+  automations.forEach((automation) => {
+    if(automation?.register) automation.register(params);
+  });
+
 };

@@ -66,11 +66,13 @@ class SocketConnection extends EventEmitter {
     this.ws.on('error', () => {
       this.emit('connection', 'connection_error');
       this.reconnect();
+      // process.exit(1);
     });
 
     this.ws.on('close', () => {
       this.emit('connection', 'connection_closed');
-      this.reconnect();
+      // this.reconnect();
+      process.exit(1);
     });
 
     await new Promise((resolve) => {

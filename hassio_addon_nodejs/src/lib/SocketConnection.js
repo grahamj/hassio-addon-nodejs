@@ -63,7 +63,8 @@ class SocketConnection extends EventEmitter {
       }
     });
 
-    this.ws.on('error', () => {
+    this.ws.on('error', (err) => {
+      log.error('SocketConnection ws error', err);
       this.emit('connection', 'connection_error');
       this.reconnect();
       // process.exit(1);
